@@ -7,7 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+// En AI Studio / Cloud Run, Nginx escucha en 8080 y hace proxy a 3000
+const PORT = 3000;
 const distPath = path.join(__dirname, 'dist');
 
 // Servir archivos estáticos del directorio dist generado por Vite

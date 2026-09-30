@@ -1,6 +1,9 @@
 {
   "name": "Calculadora",
   "description": "Calculadora digital moderna, rápida y precisa para operaciones matemáticas cotidianas con diseño premium y limpio.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
