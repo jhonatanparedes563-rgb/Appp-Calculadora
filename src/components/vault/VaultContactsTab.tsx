@@ -5,6 +5,7 @@ import {
   saveSecretContact,
   deleteSecretContact
 } from '../../services/vaultService';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   Users,
   Plus,
@@ -25,6 +26,7 @@ export const VaultContactsTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [contactToDelete, setContactToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Formulario
   const [name, setName] = useState<string>('');
@@ -102,13 +104,15 @@ export const VaultContactsTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, contactName: string) => {
-    if (!confirm(`¿Eliminar a "${contactName}" de la agenda secreta?`)) return;
+  const handleDeleteConfirmed = async () => {
+    if (!contactToDelete) return;
     try {
-      await deleteSecretContact(id);
-      setContacts(prev => prev.filter(c => c.id !== id));
+      await deleteSecretContact(contactToDelete.id);
+      setContacts(prev => prev.filter(c => c.id !== contactToDelete.id));
     } catch (err) {
       console.error(err);
+    } finally {
+      setContactToDelete(null);
     }
   };
 
@@ -290,7 +294,7 @@ export const VaultContactsTab: React.FC = () => {
 
                     <button
                       type="button"
-                      onClick={() => handleDelete(contact.id, contact.name)}
+                      onClick={() => setContactToDelete({ id: contact.id, name: contact.name })}
                       className="p-1.5 text-zinc-500 hover:text-red-400 rounded-lg hover:bg-neutral-800 transition-colors"
                       title="Eliminar contacto"
                     >
@@ -344,6 +348,16 @@ export const VaultContactsTab: React.FC = () => {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!contactToDelete}
+        title="¿Eliminar contacto?"
+        message={`¿Estás seguro de que deseas eliminar permanentemente a "${contactToDelete?.name}" de la agenda secreta?`}
+        confirmLabel="Eliminar"
+        isDestructive={true}
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setContactToDelete(null)}
+      />
 
     </div>
   );

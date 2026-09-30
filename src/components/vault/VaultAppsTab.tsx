@@ -6,6 +6,7 @@ import {
   deleteHiddenApp
 } from '../../services/vaultService';
 import { AppRunnerModal } from './AppRunnerModal';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   Grid,
   Plus,
@@ -41,6 +42,7 @@ export const VaultAppsTab: React.FC<VaultAppsTabProps> = ({ onEmergencyLock }) =
   const [selectedAppToRun, setSelectedAppToRun] = useState<HiddenApp | null>(null);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [showGuide, setShowGuide] = useState<boolean>(false);
+  const [appToDelete, setAppToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Formulario para nueva app oculta
   const [name, setName] = useState<string>('');
@@ -115,14 +117,16 @@ export const VaultAppsTab: React.FC<VaultAppsTabProps> = ({ onEmergencyLock }) =
     }
   };
 
-  const handleDelete = async (id: string, appName: string) => {
-    if (!confirm(`¿Desocultar o eliminar "${appName}" del espacio privado?`)) return;
+  const handleDeleteConfirmed = async () => {
+    if (!appToDelete) return;
     try {
-      await deleteHiddenApp(id);
-      setApps(prev => prev.filter(a => a.id !== id));
-      if (selectedAppToRun?.id === id) setSelectedAppToRun(null);
+      await deleteHiddenApp(appToDelete.id);
+      setApps(prev => prev.filter(a => a.id !== appToDelete.id));
+      if (selectedAppToRun?.id === appToDelete.id) setSelectedAppToRun(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      setAppToDelete(null);
     }
   };
 
@@ -469,7 +473,7 @@ export const VaultAppsTab: React.FC<VaultAppsTabProps> = ({ onEmergencyLock }) =
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(app.id, app.name);
+                      setAppToDelete({ id: app.id, name: app.name });
                     }}
                     className="text-zinc-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Eliminar de la bóveda"
@@ -522,6 +526,16 @@ export const VaultAppsTab: React.FC<VaultAppsTabProps> = ({ onEmergencyLock }) =
           onEmergencyLock={onEmergencyLock}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={!!appToDelete}
+        title="¿Eliminar app oculta?"
+        message={`¿Estás seguro de que deseas eliminar permanentemente "${appToDelete?.name}" de la bóveda?`}
+        confirmLabel="Eliminar"
+        isDestructive={true}
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setAppToDelete(null)}
+      />
 
     </div>
   );

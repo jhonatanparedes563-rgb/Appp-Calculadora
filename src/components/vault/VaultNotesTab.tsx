@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { VaultNote } from '../../types/vault';
 import { fetchVaultNotes, saveVaultNote, deleteVaultNote } from '../../services/vaultService';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Plus, Pin, Trash2, Edit3, Check, X, Search, FileText } from 'lucide-react';
 
 export const VaultNotesTab: React.FC = () => {
@@ -8,6 +9,7 @@ export const VaultNotesTab: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
   // Formulario
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -69,14 +71,16 @@ export const VaultNotesTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar esta nota privada?')) return;
+  const handleDeleteConfirmed = async () => {
+    if (!noteToDelete) return;
     try {
-      await deleteVaultNote(id);
-      setNotes(prev => prev.filter(n => n.id !== id));
-      if (currentId === id) setIsEditing(false);
+      await deleteVaultNote(noteToDelete);
+      setNotes(prev => prev.filter(n => n.id !== noteToDelete));
+      if (currentId === noteToDelete) setIsEditing(false);
     } catch (err) {
       console.error("Error al eliminar nota:", err);
+    } finally {
+      setNoteToDelete(null);
     }
   };
 
@@ -266,7 +270,7 @@ export const VaultNotesTab: React.FC = () => {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(note.id);
+                      setNoteToDelete(note.id);
                     }}
                     className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-opacity p-1"
                     title="Eliminar"
@@ -279,6 +283,16 @@ export const VaultNotesTab: React.FC = () => {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!noteToDelete}
+        title="¿Eliminar nota privada?"
+        message="¿Estás seguro de que deseas eliminar permanentemente esta nota de la bóveda?"
+        confirmLabel="Eliminar"
+        isDestructive={true}
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setNoteToDelete(null)}
+      />
     </div>
   );
 };

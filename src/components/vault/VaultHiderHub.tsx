@@ -60,7 +60,7 @@ export const VaultHiderHub: React.FC<VaultHiderHubProps> = ({
       if (onRefreshData) onRefreshData();
     } catch (err) {
       console.error(err);
-      alert('Hubo un error al procesar el archivo.');
+      setHideSuccessMessage('No se pudo procesar el archivo seleccionado. Por favor verifica el formato.');
     } finally {
       setHidingLoading(false);
       e.target.value = '';

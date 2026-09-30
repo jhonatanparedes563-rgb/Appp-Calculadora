@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { VaultFile, FileCategory } from '../../types/vault';
 import { fetchVaultFiles, uploadVaultFile, deleteVaultFile } from '../../services/vaultService';
 import { PhoneCaptureModal } from './PhoneCaptureModal';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   UploadCloud,
   File,
@@ -16,7 +17,8 @@ import {
   Search,
   Smartphone,
   Camera,
-  Mic
+  Mic,
+  CheckCircle2
 } from 'lucide-react';
 
 export const VaultFilesTab: React.FC = () => {
@@ -27,6 +29,8 @@ export const VaultFilesTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFileForPreview, setSelectedFileForPreview] = useState<VaultFile | null>(null);
   const [showPhoneCapture, setShowPhoneCapture] = useState<boolean>(false);
+  const [fileToDelete, setFileToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadFiles = async () => {
@@ -45,6 +49,11 @@ export const VaultFilesTab: React.FC = () => {
     loadFiles();
   }, []);
 
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (!selectedFiles || selectedFiles.length === 0) return;
@@ -55,6 +64,7 @@ export const VaultFilesTab: React.FC = () => {
         await uploadVaultFile(selectedFiles[i]);
       }
       await loadFiles();
+      showToast(`${selectedFiles.length} archivo(s) guardado(s) en la bóveda`);
     } catch (err) {
       console.error("Error al subir archivo:", err);
     } finally {
@@ -65,16 +75,19 @@ export const VaultFilesTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar definitivamente "${name}" de la bóveda?`)) return;
+  const handleDeleteConfirmed = async () => {
+    if (!fileToDelete) return;
     try {
-      await deleteVaultFile(id);
-      setFiles(prev => prev.filter(f => f.id !== id));
-      if (selectedFileForPreview?.id === id) {
+      await deleteVaultFile(fileToDelete.id);
+      setFiles(prev => prev.filter(f => f.id !== fileToDelete.id));
+      if (selectedFileForPreview?.id === fileToDelete.id) {
         setSelectedFileForPreview(null);
       }
+      showToast(`"${fileToDelete.name}" eliminado de la bóveda`);
     } catch (err) {
       console.error("Error al eliminar archivo:", err);
+    } finally {
+      setFileToDelete(null);
     }
   };
 
@@ -87,14 +100,13 @@ export const VaultFilesTab: React.FC = () => {
     a.click();
     document.body.removeChild(a);
 
-    // 2. Preguntar si se retira de la bóveda ahora que volvió al teléfono
-    if (confirm(`"${file.name}" se ha descargado a tu teléfono. ¿Deseas quitarlo de la bóveda oculta ahora que está restaurado?`)) {
-      await deleteVaultFile(file.id);
-      setFiles(prev => prev.filter(f => f.id !== file.id));
-      if (selectedFileForPreview?.id === file.id) {
-        setSelectedFileForPreview(null);
-      }
+    // 2. Quitar de la bóveda ya que fue devuelto al teléfono
+    await deleteVaultFile(file.id);
+    setFiles(prev => prev.filter(f => f.id !== file.id));
+    if (selectedFileForPreview?.id === file.id) {
+      setSelectedFileForPreview(null);
     }
+    showToast(`"${file.name}" se restauró y descargó en tu teléfono.`);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -298,7 +310,7 @@ export const VaultFilesTab: React.FC = () => {
                   </p>
                   <button
                     type="button"
-                    onClick={() => handleDelete(file.id, file.name)}
+                    onClick={() => setFileToDelete({ id: file.id, name: file.name })}
                     title="Eliminar"
                     className="text-zinc-500 hover:text-red-400 p-1 transition-colors cursor-pointer"
                   >
@@ -419,6 +431,25 @@ export const VaultFilesTab: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación de Borrado */}
+      <ConfirmDialog
+        isOpen={!!fileToDelete}
+        title="¿Eliminar archivo?"
+        message={`¿Estás seguro de que deseas eliminar permanentemente "${fileToDelete?.name}" de la bóveda?`}
+        confirmLabel="Eliminar"
+        isDestructive={true}
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setFileToDelete(null)}
+      />
+
+      {/* Notificación Toast flotante */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-neutral-900 border border-amber-500/40 text-amber-300 px-4 py-2.5 rounded-xl shadow-2xl text-xs flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
       )}
     </div>

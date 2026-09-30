@@ -5,6 +5,7 @@ import {
   saveVaultCredential,
   deleteVaultCredential
 } from '../../services/vaultService';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   KeyRound,
   Plus,
@@ -25,6 +26,7 @@ export const VaultCredentialsTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [revealedIds, setRevealedIds] = useState<Record<string, boolean>>({});
+  const [credToDelete, setCredToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Formulario
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -80,14 +82,16 @@ export const VaultCredentialsTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar la cuenta "${name}"?`)) return;
+  const handleDeleteConfirmed = async () => {
+    if (!credToDelete) return;
     try {
-      await deleteVaultCredential(id);
-      setCreds(prev => prev.filter(c => c.id !== id));
-      if (currentId === id) setIsEditing(false);
+      await deleteVaultCredential(credToDelete.id);
+      setCreds(prev => prev.filter(c => c.id !== credToDelete.id));
+      if (currentId === credToDelete.id) setIsEditing(false);
     } catch (err) {
       console.error(err);
+    } finally {
+      setCredToDelete(null);
     }
   };
 
@@ -304,7 +308,7 @@ export const VaultCredentialsTab: React.FC = () => {
                       )}
                       <button
                         type="button"
-                        onClick={() => handleDelete(item.id, item.service)}
+                        onClick={() => setCredToDelete({ id: item.id, name: item.service })}
                         className="p-1.5 text-zinc-500 hover:text-red-400 rounded-lg hover:bg-neutral-800 transition-colors"
                         title="Eliminar"
                       >
@@ -366,6 +370,16 @@ export const VaultCredentialsTab: React.FC = () => {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!credToDelete}
+        title="¿Eliminar credencial?"
+        message={`¿Estás seguro de que deseas eliminar permanentemente la cuenta "${credToDelete?.name}" de la bóveda?`}
+        confirmLabel="Eliminar"
+        isDestructive={true}
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setCredToDelete(null)}
+      />
     </div>
   );
 };

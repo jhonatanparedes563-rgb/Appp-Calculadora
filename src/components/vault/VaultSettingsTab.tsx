@@ -8,6 +8,7 @@ import {
   clearIntruders
 } from '../../services/vaultService';
 import { VaultStats, IntruderSelfie } from '../../types/vault';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   ShieldCheck,
   Key,
@@ -19,7 +20,8 @@ import {
   Smartphone,
   Camera,
   Trash2,
-  Lock
+  Lock,
+  CheckCircle2
 } from 'lucide-react';
 
 interface VaultSettingsTabProps {
@@ -33,6 +35,8 @@ export const VaultSettingsTab: React.FC<VaultSettingsTabProps> = ({ onLockVault 
   const [codeSuccess, setCodeSuccess] = useState<boolean>(false);
   const [codeError, setCodeError] = useState<string>('');
   const [intruders, setIntruders] = useState<IntruderSelfie[]>([]);
+  const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
+  const [resetSuccessToast, setResetSuccessToast] = useState<string | null>(null);
 
   const [stats, setStats] = useState<VaultStats>({
     totalFiles: 0,
@@ -81,14 +85,14 @@ export const VaultSettingsTab: React.FC<VaultSettingsTabProps> = ({ onLockVault 
     setIntruders([]);
   };
 
-  const handleResetData = async () => {
-    if (confirm('¿Estás seguro de que deseas borrar todos los archivos locales guardados en la bóveda? Esta acción no se puede deshacer.')) {
-      await clearAllLocalVaultData();
-      const updated = await getVaultStats();
-      setStats(updated);
-      setIntruders([]);
-      alert('Datos locales vaciados correctamente.');
-    }
+  const handleResetConfirmed = async () => {
+    await clearAllLocalVaultData();
+    const updated = await getVaultStats();
+    setStats(updated);
+    setIntruders([]);
+    setShowResetConfirm(false);
+    setResetSuccessToast('Todos los datos de la bóveda fueron vaciados correctamente.');
+    setTimeout(() => setResetSuccessToast(null), 3500);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -302,13 +306,30 @@ export const VaultSettingsTab: React.FC<VaultSettingsTabProps> = ({ onLockVault 
           </button>
           <button
             type="button"
-            onClick={handleResetData}
+            onClick={() => setShowResetConfirm(true)}
             className="px-4 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 rounded-xl text-xs font-medium cursor-pointer transition-colors"
           >
             Vaciar Bóveda
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        title="¿Vaciar toda la bóveda?"
+        message="¿Estás seguro de que deseas borrar todos los archivos locales guardados en la bóveda? Esta acción no se puede deshacer."
+        confirmLabel="Vaciar Bóveda"
+        isDestructive={true}
+        onConfirm={handleResetConfirmed}
+        onCancel={() => setShowResetConfirm(false)}
+      />
+
+      {resetSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-neutral-900 border border-emerald-500/40 text-emerald-300 px-4 py-2.5 rounded-xl shadow-2xl text-xs flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{resetSuccessToast}</span>
+        </div>
+      )}
     </div>
   );
 };
